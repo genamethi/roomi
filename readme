@@ -1,0 +1,13 @@
+Roomi is a hubside chatroom script written in Lua for the PtokaX hubsoft, and any compatible plugins for other hubsofts (such as ADCHPP).
+
+The main goal is for this to be a companion script to a client-side crosshub relay. Early iterations will focus on designing a clean interface, that will be able to allow interaction between several hubs without unnecessary clutter. Making a few basic commands go a long way, will be a maintained focus. Being able to create rooms on the fly is an important feature to be added shortly after these fundamentals are in place.
+
+The client-side companion or some version of it will be linked in this repo.
+
+Debug versions use Simple Interactive Mode.
+
+I make use of chill's chill.table, with one minor alteration to serialize boolean values.
+
+In the cfg directory are user configurable variables store in roomi.cfg, I plan on utilizing this more than in the past with other projects.
+
+Roomi is a play on Hoobi.
