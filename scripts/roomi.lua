@@ -3,13 +3,11 @@
 	More What: Private chatroom script (with crosshub support)
 	Why: Trying not to think about this.
 	How: Read comments to come.
-	v0.0.1
+	v0.0.2
 	
 	Notes: 	
 	
 		A lot of early code (commented or not) may seem unnecessary for something so small, it is designed this way in order to frame multi-room support.
-		
-		Commands only echo back in main at the moment. (this is an effect of multi-room support planning)
 		
 		You will automatically rejoin a room upon connecting. (and it will be announced by default)
 		
@@ -64,20 +62,23 @@ end
 OnError = sim.hook_OnError
 
 function UserConnected( tUser )					--#nomulti
-	if tRooms.tAllUsers[ tUser.sNick ] then
-		table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
-		tRooms.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See UserDisconnected to understand why this is done.
-		for i, v in ipairs( tOnlineUsers ) do
-			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has re-joined the room.\124" )
+	if tConfig.bAutoRejoin then
+		if tRooms.tAllUsers[ tUser.sNick ] then
+			table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
+			tRooms.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See UserDisconnected to understand why this is done.
+			for i, v in ipairs( tOnlineUsers ) do
+				Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has re-joined the room.\124" )
+			end
 		end
 	end
 end
 
 OpConnected, RegConnected = UserConnected, UserConnected
 
-function UserDisconnected( tUser )				--#nomulti
+function UserDisconnected( tUser )				--#nomulti	
 	if tRooms.tAllUsers[ tUser.sNick ] then
 		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
+		if not tCommand.bAutoRejoin then tRooms.tAllUsers[ tUser.sNick ] = nil end
 		for i, v in ipairs( tOnlineUsers ) do										--don't know how I feel about this, could get spammy
 			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the hub.\124" )
 		end
