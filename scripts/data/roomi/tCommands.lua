@@ -76,6 +76,9 @@ function tCommandArrivals.part:Action( tUser )		--#nomulti
 	if tRooms.tAllUsers[ tUser.sNick ] then
 		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
 		tRooms.tAllUsers[ tUser.sNick ] = nil
+		for sNick, nIndice in pairs( tRooms.tAllUsers ) do
+			nIndice = nIndice - 1;
+		end
 		for i, v in ipairs( tOnlineUsers ) do
 			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the room.\124" )
 		end
