@@ -52,6 +52,10 @@ do
 			Permissions = tProtoPerms[3],
 			sHelp = " - Gives this help message.\n"
 		},
+		lsusers = {
+			Permissions = tProtoPerms[3],
+			sHelp = " - Lists currently online chatters"
+		},
 	}
 end
 
@@ -64,7 +68,7 @@ function tCommandArrivals.join:Action( tUser )		--#nomulti
 		end
 		return true, "You've joined a room.", false, tConfig.sNick
 	else
-		return true, "You're already in that room.\124", false, tConfig.sNick
+		return true, "You're already in that room.\124", true, tConfig.sNick
 	end
 end
 
@@ -76,10 +80,19 @@ function tCommandArrivals.part:Action( tUser )		--#nomulti
 			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the room.\124" )
 		end
 	else
-		return true, "You're not currently in a room.\124", false, tConfig.sNick
+		return true, "You're not currently in a room.\124", true, tConfig.sNick
 	end
-	return true, "You've left a room.", false, tConfig.sNick
+	return true, "You've left a room.", true, tConfig.sNick
 end
+
+function tCommandArrivals.lsusers:Action( tUser )		--#nomulti
+	local sRet = "\n\n**-*-** Current Members **-*-**\n\n"
+	for i, v in ipairs( tOnlineUsers ) do
+		sRet = sRet .. "\t\t* " .. v.sNick .. "\n\n"
+	end
+	return true, sRet, true, tConfig.sNick
+end
+	
 
 function tCommandArrivals.roomhelp:Action( tUser )
 	local sRet = "\n\n**-*-** " .. ScriptMan.GetScript().sName .."  help (use one of these prefixes: " .. SetMan.GetString( 29 ) .. "\n\n"
@@ -88,5 +101,5 @@ function tCommandArrivals.roomhelp:Action( tUser )
 			sRet = sRet .. "\t" .. name .. "\t" .. obj.sHelp;
 		end
 	end
-	return true, sRet .. "\n\tWorks in main only at the moment!**-*-**\n", false, tConfig.sNick
+	return true, sRet .. "\n\tWorks in main only at the moment!**-*-**\n", true, tConfig.sNick
 end
