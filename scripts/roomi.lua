@@ -78,9 +78,9 @@ OpConnected, RegConnected = UserConnected, UserConnected
 function UserDisconnected( tUser )				--#nomulti
 	if tRooms.tAllUsers[ tUser.sNick ] then
 		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
-	end
-	for i, v in ipairs( tOnlineUsers ) do										--don't know how I feel about this, could get spammy
-		Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the hub.\124" )
+		for i, v in ipairs( tOnlineUsers ) do										--don't know how I feel about this, could get spammy
+			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the hub.\124" )
+		end
 	end
 end
 
