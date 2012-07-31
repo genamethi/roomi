@@ -78,7 +78,7 @@ OpConnected, RegConnected = UserConnected, UserConnected
 function UserDisconnected( tUser )				--#nomulti	
 	if tRooms.tAllUsers[ tUser.sNick ] then
 		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
-		if not tCommand.bAutoRejoin then
+		if not tConfig.bAutoRejoin then
 			tRooms.tAllUsers[ tUser.sNick ] = nil
 			for i,v in pairs( tRooms.tAllUsers ) do
 				v = v - 1;
