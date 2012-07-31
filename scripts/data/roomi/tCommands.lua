@@ -42,7 +42,7 @@ do
 		]]
 		join = {
 			Permissions = tProtoPerms[3],
-			sHelp = " - Joins chatroom.\n" 			--#nomulti
+			sHelp = " <Room> - Joins chatroom.\n" 			--#nomulti
 		},
 		part = {
 			Permissions = tProtoPerms[3],
@@ -59,20 +59,34 @@ do
 	}
 end
 
-function tCommandArrivals.join:Action( tUser )		--#nomulti
-	if not tRooms.tAllUsers[ tUser.sNick ] then
-		table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
-		tRooms.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See part command to understand why this is done.
-		for i, v in ipairs( tOnlineUsers ) do
-			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has joined the room.\124" )
+function tCommandArrivals.join:Action( tUser, sMsg )
+	local sRoomName, oRoom = sMsg:match( "^(%S+)|$" );
+	if sRoomName then
+		for i = 1, #tRooms do
+			if tRooms[i].sNick == sRoomName then
+				oRoom = tRooms[i];
+				break;
+			end
 		end
-		return true, "You've joined a room.", false, tConfig.sNick
+		if oRoom then
+			if not oRoom.tAllUsers[ tUser.sNick ] then
+				table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
+				oRoom.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See part command to understand why this is done.
+				for i, v in ipairs( tOnlineUsers ) do
+					Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has joined the room.\124" )
+				end
+				return true, "You've joined a room.", false, oRoom.sNick
+			else
+				return true, "You're already in that room.\124", true, oRoom.sNick
+			end
+		else
+			return tCommandArrivals.mkroom:Action( tUser, sMsg );
+		end
 	else
-		return true, "You're already in that room.\124", true, tConfig.sNick
-	end
+	
 end
 
-function tCommandArrivals.part:Action( tUser )		--#nomulti
+function tCommandArrivals.part:Action( tUser )
 	if tRooms.tAllUsers[ tUser.sNick ] then
 		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
 		tRooms.tAllUsers[ tUser.sNick ] = nil

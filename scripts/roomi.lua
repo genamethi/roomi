@@ -20,6 +20,12 @@
 		This script goes off the assumption of data integrity skipping checks in some places. If you'd like a more strict approach, I will release it in a separate branch.
 		
 		*Feature
+		
+		Todo: 
+		
+			Multi-room support. !mkroom "RoomName"
+			Relay support.		!addrelay "RoomName" Sent from relay (Registers relay)
+			Configure script.
 ]]
 
 require "sim"
@@ -30,26 +36,28 @@ dofile( Core.GetPtokaXPath( ) .. "scripts/data/roomi/tCommands.lua" )	--Commands
 
 --[[ sPre creates a formatted pattern readable by string.match in order to detect when PtokaX set prefixes are used. ]]
 sPre = "^[" .. ( SetMan.GetString( 29 ):gsub( ( "%p" ), function ( p ) return "%" .. p end ) ) .. "]"
-tOnlineUsers = {}	--This may or may not support multi-room, depends on design of Users object within each room table. #nomulti
+tOnlineUsers = {}	--This may or may not support multi-room, depends on design of Users object within each room table.
 
 do
 	tRooms = table.load( tConfig.sPath .. tConfig.sFile )	--Load pre-existent rooms
 	if not tRooms then										--Nothing to load.
-		tRooms = { tAllUsers = {}, tXbots = {} }							--Create object to hold rooms.	#nomulti
+		tRooms = { }							--Create object to hold rooms.
 		--Note: Eventual object will initial blank, will be an array of tables describing each room. Rooms and users will be persistent between script restarts (and user reconnects?)
 	end
 end
 
 --[[ Register rooms and interactive Lua mode.]]
 	
-function OnStartup( )							--#nomulti
+function OnStartup( )
 	Core.RegBot( tConfig.sNick, tConfig.sDescription, "", false )		--Recreating rooms.
 	--[[ Todo: Add multiple room support.
 	for i = 1, #tRooms do
 		Core.RegBot( tRooms[i].sNick, tRooms[i].sDescription, "", false )		--Recreating rooms.
 	end]]
-	for sNick in pairs( tRooms.tAllUsers ) do
-		table.insert( tOnlineUsers, Core.GetUser( sNick ) )
+	for i, v in ipairs( tRooms ) do
+		for sNick in pairs( v.tAllUsers ) do
+			table.insert( tOnlineUsers, Core.GetUser( sNick ) )
+		end
 	end
 	sim.hook_OnStartup( { "#SIM", "PtokaX Lua interface via ToArrival", "", true }, tConfig.tAdmins )
 end
@@ -61,13 +69,15 @@ end
 
 OnError = sim.hook_OnError
 
-function UserConnected( tUser )					--#nomulti
+function UserConnected( tUser )
 	if tConfig.bAutoRejoin then
-		if tRooms.tAllUsers[ tUser.sNick ] then
-			table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
-			tRooms.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See UserDisconnected to understand why this is done.
-			for i, v in ipairs( tOnlineUsers ) do
-				Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has re-joined the room.\124" )
+		for _, oRoom in ipairs( tRooms ) do
+			if oRoom.tAllUsers[ tUser.sNick ] then
+				table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
+				oRoom.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See UserDisconnected to understand why this is done.
+				for i, v in ipairs( tOnlineUsers ) do
+					Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has re-joined the room.\124" )
+				end
 			end
 		end
 	end
@@ -75,17 +85,19 @@ end
 
 OpConnected, RegConnected = UserConnected, UserConnected
 
-function UserDisconnected( tUser )				--#nomulti	
-	if tRooms.tAllUsers[ tUser.sNick ] then
-		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
-		if not tConfig.bAutoRejoin then
-			tRooms.tAllUsers[ tUser.sNick ] = nil
-			for i,v in pairs( tRooms.tAllUsers ) do
-				v = v - 1;
+function UserDisconnected( tUser )
+	for _, oRoom in ipairs( tRooms ) do
+		if oRoom.tAllUsers[ tUser.sNick ] then
+			table.remove( tOnlineUsers, oRoom.tAllUsers[ tUser.sNick ] )		--the value of tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
+			if not tConfig.bAutoRejoin then
+				oRoom.tAllUsers[ tUser.sNick ] = nil
+				for i,v in pairs( oRoom.tAllUsers ) do
+					v = v - 1;
+				end
 			end
-		end
-		for i, v in ipairs( tOnlineUsers ) do										--don't know how I feel about this, could get spammy
-			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the hub.\124" )
+			for i, v in ipairs( tOnlineUsers ) do										--don't know how I feel about this, could get spammy
+				Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has left the hub.\124" )
+			end
 		end
 	end
 end
@@ -130,14 +142,15 @@ function ToArrival( tUser, sData )				--#nomulti
 			end
 		end
 	end
-	if sToUser == tConfig.sNick and tRooms.tAllUsers[ tUser.sNick ] then
-		local sMessage = " From: " .. tConfig.sNick .. sData:sub( nInitIndex - #tUser.sNick - 5 )
-		for i, v in ipairs( tOnlineUsers ) do
-			if v.sNick ~= tUser.sNick then
-				Core.SendToUser( v, "$To: " .. v.sNick .. sMessage )
+	for _, oRoom in ipairs( tRooms ) do
+		if sToUser == oRoom.sBotNick and oRoom.tAllUsers[ tUser.sNick ] then
+			local sMessage = " From: " .. oRoom.sNick .. sData:sub( nInitIndex - #tUser.sNick - 5 )
+			for i, v in ipairs( tOnlineUsers ) do
+				if v.sNick ~= tUser.sNick then
+					Core.SendToUser( v, "$To: " .. v.sNick .. sMessage )
+				end
 			end
 		end
-	end
 end
 
 ----------------------------------------------------------------------------
