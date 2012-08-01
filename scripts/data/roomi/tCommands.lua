@@ -1,34 +1,34 @@
 do
 	local tProtoPerms = {
-		[1] = { Uncomment if you change permissions, use the guide below to decide on the value.
+		[1] = {
 			[0] = true, [1] = true, [2] = true, [3] = true, [4] = false, [5] = false, [-1] = false;
 		},
-		-- [2] = {
-			-- [0] = true, [1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [-1] = true;
-		-- },
+		[2] = {
+			[0] = true, [1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [-1] = true;
+		},
 		[3] = {
 			[1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [0] = true, [-1] = false,
 		},
-		-- [4] = {
-			-- [1] = {
-				-- [1] = false, [2] = true, [3] = true, [4] = true, [5] = true, [0] = false, [-1] = true,
-			-- },
-			-- [2] = {
-				-- [1] = false, [2] = false, [3] = true, [4] = true, [5] = true, [0] = false, [-1] = true,
-			-- },
-			-- [3] = {
-				-- [1] = false, [2] = false, [3] = false, [4] = true, [5] = true, [0] = false, [-1] = true,
-			-- },
-			-- [4] = {
-				-- [1] = false, [2] = false, [3] = false, [4] = false, [5] = false, [0] = false, [-1] = true,
-			-- },
-			-- [0] = {
-				-- [1] = false, [2] = true, [3] = true, [4] = true, [5] = true, [0] = false, [-1] = true,
-			-- },
-			-- [5] = {
-				-- [1] = false, [2] = false, [3] = false, [4] = false, [5] = false, [0] = false, [-1] = false,
-			-- },
-		-- }
+		[4] = {
+			[1] = {
+				[1] = false, [2] = true, [3] = true, [4] = true, [5] = true, [0] = false, [-1] = true,
+			},
+			[2] = {
+				[1] = false, [2] = false, [3] = true, [4] = true, [5] = true, [0] = false, [-1] = true,
+			},
+			[3] = {
+				[1] = false, [2] = false, [3] = false, [4] = true, [5] = true, [0] = false, [-1] = true,
+			},
+			[4] = {
+				[1] = false, [2] = false, [3] = false, [4] = false, [5] = false, [0] = false, [-1] = true,
+			},
+			[0] = {
+				[1] = false, [2] = true, [3] = true, [4] = true, [5] = true, [0] = false, [-1] = true,
+			},
+			[5] = {
+				[1] = false, [2] = false, [3] = false, [4] = false, [5] = false, [0] = false, [-1] = false,
+			},
+		}
 	}
 
 
