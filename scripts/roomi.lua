@@ -36,7 +36,6 @@ dofile( Core.GetPtokaXPath( ) .. "scripts/data/roomi/tCommands.lua" )	--Commands
 
 --[[ sPre creates a formatted pattern readable by string.match in order to detect when PtokaX set prefixes are used. ]]
 sPre = "^[" .. ( SetMan.GetString( 29 ):gsub( ( "%p" ), function ( p ) return "%" .. p end ) ) .. "]"
-tOnlineUsers = {}	--This may or may not support multi-room, depends on design of Users object within each room table.
 
 do
 	tRooms = table.load( tConfig.sPath .. tConfig.sFile )	--Load pre-existent rooms
@@ -49,20 +48,20 @@ end
 --[[ Register rooms and interactive Lua mode.]]
 	
 function OnStartup( )
-	Core.RegBot( tConfig.sNick, tConfig.sDescription, "", false )		--Recreating rooms.
-	--[[ Todo: Add multiple room support.
-	for i = 1, #tRooms do
-		Core.RegBot( tRooms[i].sNick, tRooms[i].sDescription, "", false )		--Recreating rooms.
-	end]]
-	for i, v in ipairs( tRooms ) do
-		for sNick in pairs( v.tAllUsers ) do
-			table.insert( tOnlineUsers, Core.GetUser( sNick ) )
+	Core.RegBot( tConfig.sNick, tConfig.sDescription, "", false )		--Registering bot.	
+	for _, oRoom in ipairs( tRooms ) do
+		Core.RegBot( oRoom.sNick, "Roomi chatroom!", "", false )		--Recreating rooms.
+		for sNick in pairs( oRoom.tAllUsers ) do
+			table.insert( oRoom.tOnlineUsers, Core.GetUser( sNick ) )
 		end
 	end
 	sim.hook_OnStartup( { "#SIM", "PtokaX Lua interface via ToArrival", "", true }, tConfig.tAdmins )
 end
 
 function OnExit( )
+	for i = 1, #tRooms do
+		tRooms[i].tOnlineUsers = {}
+	end
 	table.save( tRooms, tConfig.sPath .. tConfig.sFile )
 	sim.hook_OnExit()
 end
@@ -73,9 +72,9 @@ function UserConnected( tUser )
 	if tConfig.bAutoRejoin then
 		for _, oRoom in ipairs( tRooms ) do
 			if oRoom.tAllUsers[ tUser.sNick ] then
-				table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
-				oRoom.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See UserDisconnected to understand why this is done.
-				for i, v in ipairs( tOnlineUsers ) do
+				table.insert( oRoom.tOnlineUsers, Core.GetUser( tUser.sNick ) )
+				oRoom.tAllUsers[ tUser.sNick ] = #oRoom.tOnlineUsers									--See UserDisconnected to understand why this is done.
+				for i, v in ipairs( oRoom.tOnlineUsers ) do
 					Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has re-joined the room.\124" )
 				end
 			end
@@ -88,14 +87,14 @@ OpConnected, RegConnected = UserConnected, UserConnected
 function UserDisconnected( tUser )
 	for _, oRoom in ipairs( tRooms ) do
 		if oRoom.tAllUsers[ tUser.sNick ] then
-			table.remove( tOnlineUsers, oRoom.tAllUsers[ tUser.sNick ] )		--the value of tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
+			table.remove( oRoom.tOnlineUsers, oRoom.tAllUsers[ tUser.sNick ] )		--the value of tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
 			if not tConfig.bAutoRejoin then
 				oRoom.tAllUsers[ tUser.sNick ] = nil
 				for i,v in pairs( oRoom.tAllUsers ) do
 					v = v - 1;
 				end
 			end
-			for i, v in ipairs( tOnlineUsers ) do										--don't know how I feel about this, could get spammy
+			for i, v in ipairs( oRoom.tOnlineUsers ) do										--don't know how I feel about this, could get spammy
 				Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has left the hub.\124" )
 			end
 		end
@@ -111,9 +110,13 @@ function ChatArrival( tUser, sData )
 		if sCmd then
 			sCmd = sCmd:lower( )
 			if tCommandArrivals[ sCmd ] then
-				local sMsg
-				if nInitIndex + #sCmd <= #sData + 1 then sMsg = sData:sub( nInitIndex + #sCmd + 2 ) end
-				return ExecuteCommand( tUser, sMsg, sCmd )
+				if tCommandArrivals[ sCmd ].Permissions[ tUser.iProfile ] then 
+					local sMsg
+					if nInitIndex + #sCmd <= #sData + 1 then sMsg = sData:sub( nInitIndex + #sCmd + 2 ) end
+					return ExecuteCommand( tUser, sMsg, sCmd )
+				else
+					return Core.SendPmToUser( tUser, tConfig.sNick,  "*** Permission denied.\124" ), true;
+				end
 			else
 				return false
 			end
@@ -135,28 +138,36 @@ function ToArrival( tUser, sData )				--#nomulti
 					if ( nInitIndex + #sCmd + 2 ) < #sData then 
 						sMsg = sData:sub( nInitIndex + #sCmd + 2 );
 					end
-					return ExecuteCommand( tUser, sMsg, sCmd, true ); 				--per usual we let ExectueCommand do the job of passing the command its arguments and passing back its returns.
+					return ExecuteCommand( tUser, sMsg, sCmd, true, sToUser ); 				--per usual we let ExectueCommand do the job of passing the command its arguments and passing back its returns.
 				else
-					return Core.SendPmToUser( tUser, tMail[1],  "*** Permission denied.\124" ), true;
+					return Core.SendPmToUser( tUser, tConfig.sNick,  "*** Permission denied.\124" ), true;
 				end
 			end
 		end
 	end
-	for _, oRoom in ipairs( tRooms ) do
-		if sToUser == oRoom.sBotNick and oRoom.tAllUsers[ tUser.sNick ] then
+	local oRoom;
+	for i = 1, #tRooms do
+		if tRooms[i].sNick == sToUser then
+			oRoom = tRooms[i];
+			break;
+		end
+	end
+	if oRoom then
+		if oRoom.tAllUsers[ tUser.sNick ] then				--Todo: remove this check and automatically join on first message sent.
 			local sMessage = " From: " .. oRoom.sNick .. sData:sub( nInitIndex - #tUser.sNick - 5 )
-			for i, v in ipairs( tOnlineUsers ) do
+			for i, v in ipairs( oRoom.tOnlineUsers ) do
 				if v.sNick ~= tUser.sNick then
 					Core.SendToUser( v, "$To: " .. v.sNick .. sMessage )
 				end
 			end
 		end
+	end
 end
 
 ----------------------------------------------------------------------------
 ----------------------------------------------------------------------------
-function ExecuteCommand( tUser, sMsg, sCmd, bInPM )
-	local bRet, sRetMsg, bInPM, sFrom = tCommandArrivals[ sCmd ]:Action( tUser, sMsg );
+function ExecuteCommand( tUser, sMsg, sCmd, bInPM, sToUser )
+	local bRet, sRetMsg, bInPM, sFrom = tCommandArrivals[ sCmd ]:Action( tUser, sMsg, sToUser );
 	if sRetMsg then
 		if bInPM then
 			if sFrom then

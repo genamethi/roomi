@@ -1,8 +1,8 @@
 do
 	local tProtoPerms = {
-		-- [1] = { Uncomment if you change permissions, use the guide below to decide on the value.
-			-- [0] = true, [1] = true, [2] = true, [3] = true, [4] = false, [5] = false, [-1] = false;
-		-- },
+		[1] = { Uncomment if you change permissions, use the guide below to decide on the value.
+			[0] = true, [1] = true, [2] = true, [3] = true, [4] = false, [5] = false, [-1] = false;
+		},
 		-- [2] = {
 			-- [0] = true, [1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [-1] = true;
 		-- },
@@ -42,7 +42,7 @@ do
 		]]
 		join = {
 			Permissions = tProtoPerms[3],
-			sHelp = " <Room> - Joins chatroom.\n" 			--#nomulti
+			sHelp = " [Room] - Joins chatroom.\n"
 		},
 		part = {
 			Permissions = tProtoPerms[3],
@@ -54,25 +54,36 @@ do
 		},
 		lsusers = {
 			Permissions = tProtoPerms[3],
-			sHelp = " - Lists currently online chatters"
+			sHelp = " - Lists all chatters in room.\n"
+		},
+		mkroom = {
+			Permissions = tProtoPerms[3],
+			sHelp = "<Room Name> - Creates a new room.\n"
+		},
+		delroom = {
+			Permissions = tProtoPerms[1],
+			sHelp = "<Room> - Removes room.\n"
 		},
 	}
 end
 
-function tCommandArrivals.join:Action( tUser, sMsg )
-	local sRoomName, oRoom = sMsg:match( "^(%S+)|$" );
-	if sRoomName then
+function tCommandArrivals.join:Action( tUser, sMsg, sToUser )
+	local sRoomName, oRoom = sMsg:match( "^(%S+)|$" )
+	if not sToUser and not sRoomName then
+		return true, "Please specify a name when attempting to join a room\124", true, tConfig.sNick
+	else
+		sRoomName = sRoomName or sToUser
 		for i = 1, #tRooms do
-			if tRooms[i].sNick == sRoomName then
-				oRoom = tRooms[i];
-				break;
+			if tRooms[i].sNick:lower() == sRoomName:lower() then
+				oRoom = tRooms[i]
+				break
 			end
 		end
 		if oRoom then
 			if not oRoom.tAllUsers[ tUser.sNick ] then
-				table.insert( tOnlineUsers, Core.GetUser( tUser.sNick ) )
-				oRoom.tAllUsers[ tUser.sNick ] = #tOnlineUsers									--See part command to understand why this is done.
-				for i, v in ipairs( tOnlineUsers ) do
+				table.insert( oRoom.tOnlineUsers, tUser )
+				oRoom.tAllUsers[ tUser.sNick ] = #oRoom.tOnlineUsers									--See part command to understand why this is done.
+				for i, v in ipairs( oRoom.tOnlineUsers ) do
 					Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has joined the room.\124" )
 				end
 				return true, "You've joined a room.", false, oRoom.sNick
@@ -80,36 +91,98 @@ function tCommandArrivals.join:Action( tUser, sMsg )
 				return true, "You're already in that room.\124", true, oRoom.sNick
 			end
 		else
-			return tCommandArrivals.mkroom:Action( tUser, sMsg );
+			return tCommandArrivals.mkroom:Action( tUser, sMsg )
 		end
-	else
-	
-end
-
-function tCommandArrivals.part:Action( tUser )
-	if tRooms.tAllUsers[ tUser.sNick ] then
-		table.remove( tOnlineUsers, tRooms.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
-		tRooms.tAllUsers[ tUser.sNick ] = nil
-		for sNick, nIndice in pairs( tRooms.tAllUsers ) do
-			nIndice = nIndice - 1;
-		end
-		for i, v in ipairs( tOnlineUsers ) do
-			Core.SendPmToUser( v, tConfig.sNick, tUser.sNick .. " has left the room.\124" )
-		end
-	else
-		return true, "You're not currently in a room.\124", true, tConfig.sNick
 	end
-	return true, "You've left a room.", true, tConfig.sNick
 end
 
-function tCommandArrivals.lsusers:Action( tUser )		--#nomulti
+function tCommandArrivals.part:Action( tUser, sMsg, sToUser )
+	local oRoom;
+	for i = 1, #tRooms do
+		sRoom = sMsg:match( "^(%S+)|$" ):lower() or sToUser:lower()
+		if tRooms[i].sNick:lower() == sRoom then
+			oRoom = tRooms[i]
+			break;
+		end
+	end
+	if oRoom then
+		if oRoom.tAllUsers[ tUser.sNick ] then
+			table.remove( oRoom.tOnlineUsers, oRoom.tAllUsers[ tUser.sNick ] )		--the value of tRooms.tAllUsers[ tUser.sNick ] should be the user's indice in OnlineUsers.
+			oRoom.tAllUsers[ tUser.sNick ] = nil
+			for sNick, nIndice in pairs( oRoom.tAllUsers ) do
+				nIndice = nIndice - 1;
+			end
+			for i, v in ipairs( oRoom.tOnlineUsers ) do
+				Core.SendPmToUser( v, oRoom.sNick, tUser.sNick .. " has left the room.\124" )
+			end
+		else
+			return true, "You're not currently in a room.\124", true, oRoom.sNick
+		end
+		return true, "You've left a room.", true, oRoom.sNick
+	else
+		return true, "Error, no room specified, or sent to incorrect nick.\124", true, tConfig.sNick
+	end
+end
+
+function tCommandArrivals.lsusers:Action( tUser, sMsg, sToUser )		--#nomulti
 	local sRet = "\n\n**-*-** Current Members **-*-**\n\n"
-	for i, v in ipairs( tOnlineUsers ) do
-		sRet = sRet .. "\t\t* " .. v.sNick .. "\n\n"
+	local oRoom;
+	for i = 1, #tRooms do
+		sToUser = sMsg:match( "^(%S+)|$" ):lower() or sToUser
+		if tRooms[i].sNick == sToUser then
+			oRoom = tRooms[i]
+			break;
+		end
 	end
-	return true, sRet, true, tConfig.sNick
+	if oRoom then
+		for i, v in ipairs( oRoom.tOnlineUsers ) do
+			sRet = sRet .. "\t\t* " .. v.sNick .. "\n\n"
+		end
+		return true, sRet, true, oRoom.sNick
+	else
+		return true, "Error, no room specified, or sent to invalid user or bot.\124", true, tConfig.sNick
+	end
 end
-	
+
+function tCommandArrivals.mkroom:Action( tUser, sMsg ) --Need to add check for forbidden characters.
+	local sRoom = sMsg:match( "^(%S+)|$" )
+	if sRoom then
+		local tReserved = Core.GetBots( )
+		table.insert( tReserved, sHBName )
+		table.insert( tReserved, sOCName )
+		for i = 1, #tReserved - 2 do
+			tReserved[ tReserved[ i ].sNick:lower() ], tReserved[ i ] = true, nil;
+		end
+		if tReserved[ sRoom:lower() ] or RegMan.GetReg( sRoom ) then
+			return true, "This nick is reserved by a bot or another user, please use something else.\124", true, tConfig.sNick
+		else
+			Core.RegBot( sRoom, "Roomi chatroom!", "", false )
+			table.insert( tRooms, { sNick = sRoom, tAllUsers = { }, tOnlineUsers = { } } )
+			table.insert( tRooms[ #tRooms ].tOnlineUsers, tUser )
+			tRooms[ #tRooms ].tAllUsers[ tUser.sNick ] = #tRooms[ #tRooms ].tOnlineUsers
+			return true, "New room created!", true, tConfig.sNick
+		end
+	else
+		return true, "Please specify a name when attempting to make a new room\124", true, tConfig.sNick
+	end
+end
+
+function tCommandArrivals.delroom:Action( tUser, sMsg )
+	local sRoom = sMsg:match( "^(%S+)|$" ):lower()
+	if sRoom then
+		for i = 1, #tRooms do
+			if tRooms[i].sNick:lower() == sRoom then
+				table.remove( tRooms, i )
+				Core.UnregBot( sRoom )
+				break;
+			end
+		end
+		return true, "Room has been deleted!", true, tConfig.sNick
+	else
+		return true, "Specified room does not exist.", true, tConfig.sNick
+	end
+end
+		
 
 function tCommandArrivals.roomhelp:Action( tUser )
 	local sRet = "\n\n**-*-** " .. ScriptMan.GetScript().sName .."  help (use one of these prefixes: " .. SetMan.GetString( 29 ) .. "\n\n"
