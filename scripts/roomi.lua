@@ -124,7 +124,7 @@ function ChatArrival( tUser, sData )
 	end
 end		
 
-function ToArrival( tUser, sData )				--#nomulti
+function ToArrival( tUser, sData )
 	local sToUser = sData:match( "^(%S+)", 6 )										--Capture begins at the 6th char, ends at the first space after the 1st non-space character. Receiving user, per nmdc prot.
 	local nInitIndex = #sToUser + 18 + #tUser.sNick * 2								--A bit of math to mark the first character of the actual message sent
 	sim.hook_ToArrival( tUser, sData, sToUser, nInitIndex )							--sim will listen for messages sent to Botname registered to it on startup. see sim.hook_ToArrival

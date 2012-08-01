@@ -124,7 +124,7 @@ function tCommandArrivals.part:Action( tUser, sMsg, sToUser )
 	end
 end
 
-function tCommandArrivals.lsusers:Action( tUser, sMsg, sToUser )		--#nomulti
+function tCommandArrivals.lsusers:Action( tUser, sMsg, sToUser )
 	local sRet = "\n\n**-*-** Current Members **-*-**\n\n"
 	local oRoom;
 	for i = 1, #tRooms do
