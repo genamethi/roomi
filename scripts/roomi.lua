@@ -23,7 +23,6 @@
 		
 		Todo: 
 		
-			Multi-room support. !mkroom "RoomName"
 			Relay support.		!addrelay "RoomName" Sent from relay (Registers relay)
 			Configure script.
 ]]
