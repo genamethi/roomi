@@ -154,6 +154,10 @@ function ToArrival( tUser, sData )
 	if oRoom then
 		if oRoom.tAllUsers[ tUser.sNick ] then				--Todo: remove this check and automatically join on first message sent.
 			local sMessage = " From: " .. oRoom.sNick .. sData:sub( nInitIndex - #tUser.sNick - 5 )
+			oRoom.ChatHistory[ oRoom.ChatHistory.HistoryLines ][1], oRoom.ChatHistory[ HistoryLines ][2], oRoom.ChatHistory.Counter = ( os.time( ) ), sData:sub( nInitIndex - #tUser.sNick - 2, -2 ), (
+			oRoom.ChatHistory.Counter == oRoom.ChatHistory.HistoryLines and oRoom.ChatHistory.HistoryLines or oRoom.ChatHistory.Counter + 1 );
+			table.insert( oRoom.ChatHistory, 1, oRoom.ChatHistory[ oRoom.ChatHistory.HistoryLines ] )
+			table.remove( oRoom.ChatHistory, oRoom.ChatHistory.HistoryLines + 1 );
 			for i, v in ipairs( oRoom.tOnlineUsers ) do
 				if v.sNick ~= tUser.sNick then
 					Core.SendToUser( v, "$To: " .. v.sNick .. sMessage )
@@ -166,25 +170,74 @@ end
 ----------------------------------------------------------------------------
 ----------------------------------------------------------------------------
 function ExecuteCommand( tUser, sMsg, sCmd, bInPM, sToUser )
-	local bRet, sRetMsg, bInPM, sFrom = tCommandArrivals[ sCmd ]:Action( tUser, sMsg, sToUser );
+	local bRet, sRetMsg, bInPM, sFrom = tCommandArrivals[ sCmd ]:Action( tUser, sMsg, sToUser )
 	if sRetMsg then
 		if bInPM then
 			if sFrom then
-				return Core.SendPmToUser( tUser, sFrom, sRetMsg ), true;
+				return Core.SendPmToUser( tUser, sFrom, sRetMsg ), true
 			else
-				return Core.SendPmToUser( tUser, tConfig.sNick, sRetMsg ), true;
+				return Core.SendPmToUser( tUser, tConfig.sNick, sRetMsg ), true
 			end
 		else
 			if sFrom then
-				return Core.SendToUser( tUser, "<" .. sFrom .. "> " .. sRetMsg ), true;
+				return Core.SendToUser( tUser, "<" .. sFrom .. "> " .. sRetMsg ), true
 			else
-				return Core.SendToUser( tUser, "<" .. tConfig.sNick "> "  .. sRetMsg ), true;
+				return Core.SendToUser( tUser, "<" .. tConfig.sNick "> "  .. sRetMsg ), true
 			end
 		end
 	else
 		return bRet;
 	end
 end
-----------------------------------------------------------------------------
-----------------------------------------------------------------------------
 
+function doHistory( buff, s, e )
+	local first = buff.Counter
+	if first == 0 then
+		return "Sorry, there is no history to be displayed.\124"
+	end
+	if not s or s == 0 then
+		s = first;
+	elseif s < 0 then
+		if math.abs( s ) > first then
+			s = first
+		else
+			s = math.abs( s )
+		end
+	elseif s > first then
+		s = 1
+	else
+		s = first - s + 1
+	end
+
+	if not e or e == 0 then
+		e = 1
+	elseif e < 0 then
+		if math.abs( e ) > first then
+			e = first
+		else
+			e = math.abs( e )
+		end
+	elseif e > first then
+		e = 1
+	else
+		e = first - e + 1
+	end
+
+	local ret = "Here follows lines " .. first + 1 - s .. " - " .. first + 1 - e .. " of chat\n\n"
+	local date = os.date;
+	for n = s, e, s > e and -1 or 1 do
+		ret = ret .. "[" .. date( "%x %X", buff[ n ][1] ) .. "] " .. buff[ n ][2] .. "\n"
+	end
+	return ret
+end
+
+function NewHistory( )
+	local ChatHistory = { }
+	ChatHistory.HistoryLines = 150
+	for i = 1, ChatHistory.HistoryLines do ChatHistory[ i ] = { } end
+	ChatHistory.Counter = 0
+	return ChatHistory
+end
+
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------

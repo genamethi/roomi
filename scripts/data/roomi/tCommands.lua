@@ -64,6 +64,10 @@ do
 			Permissions = tProtoPerms[1],
 			sHelp = "<Room> - Removes room.\n"
 		},
+		rmhistory = {
+			Permissions = tProtoPerms[3],
+			sHelp = "<Start> <End> - Give command first and last desired line number of viewable history.\n"
+		},
 	}
 end
 
@@ -157,7 +161,7 @@ function tCommandArrivals.mkroom:Action( tUser, sMsg ) --Need to add check for f
 			return true, "This nick is reserved by a bot or another user, please use something else.\124", true, tConfig.sNick
 		else
 			Core.RegBot( sRoom, "Roomi chatroom!", "", false )
-			table.insert( tRooms, { sNick = sRoom, tAllUsers = { }, tOnlineUsers = { } } )
+			table.insert( tRooms, { sNick = sRoom, tAllUsers = { }, tOnlineUsers = { }, ChatHistory = NewHistory() } )
 			table.insert( tRooms[ #tRooms ].tOnlineUsers, tUser )
 			tRooms[ #tRooms ].tAllUsers[ tUser.sNick ] = #tRooms[ #tRooms ].tOnlineUsers
 			return true, "New room created!", true, tConfig.sNick
@@ -188,8 +192,30 @@ function tCommandArrivals.roomhelp:Action( tUser )
 	local sRet = "\n\n**-*-** " .. ScriptMan.GetScript().sName .."  help (use one of these prefixes: " .. SetMan.GetString( 29 ) .. "\n\n"
 	for name, obj in pairs( tCommandArrivals ) do
 		if obj.Permissions[ tUser.iProfile ] then
-			sRet = sRet .. "\t" .. name .. "\t" .. obj.sHelp;
+			sRet = sRet .. "\t" .. name .. "\t" .. obj.sHelp
 		end
 	end
 	return true, sRet .. "\n\tWorks in main only at the moment!**-*-**\n", true, tConfig.sNick
+end
+
+function tCommandArrivals.rmhistory:Action( tUser, sMsg, sToUser )
+	local opt, i, j = sMsg:match "^%s*(%a-)%s*(%-?%d*)%s*(%--%d-)%s*|$"
+	if sMsg:match( "%S+%s*|$" ) and not opt and not i and not j then
+		return true, self.sHelp
+	else
+		local oRoom
+		for i = 1, #tRooms do
+			sToUser = sMsg:match( "^(%S+)|$" ):lower() or sToUser
+			if tRooms[i].sNick == sToUser then
+				oRoom = tRooms[i]
+				break
+			end
+		end
+		if oRoom then
+			i, j = tonumber( i ), tonumber( j );
+			return true, doHistory( oRoom.ChatHistory, i, j )
+		else
+			return true, "Error, no room specified, or sent to invalid user or bot.\124", true, tConfig.sNick
+		end
+	end
 end
