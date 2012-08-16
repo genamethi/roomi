@@ -3,12 +3,10 @@
 	More What: Private chatroom script (with crosshub support)
 	Why: Trying not to think about this.
 	How: Read comments to come.
-	v0.0.2
+	v0.0.3
 	
 	Notes: 	
 	
-		A lot of early code (commented or not) may seem unnecessary for something so small, it is designed this way in order to frame multi-room support.
-		
 		You will automatically rejoin a room upon connecting. (and it will be announced by default)
 		
 		Adding yourself to tOnlineUsers through SIM will result in bugs. (I suggest adding through command when possible. Otherwise, run this in one line:
@@ -40,7 +38,6 @@ do
 	tRooms = table.load( tConfig.sPath .. tConfig.sFile )	--Load pre-existent rooms
 	if not tRooms then										--Nothing to load.
 		tRooms = { }							--Create object to hold rooms.
-		--Note: Eventual object will initial blank, will be an array of tables describing each room. Rooms and users will be persistent between script restarts (and user reconnects?)
 	end
 end
 

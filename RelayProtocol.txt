@@ -1,0 +1,4 @@
+First Relay Bots will operate of the concept that new rooms can be created by joining non-existent rooms.
+So, when a room is requested as a relay and doesn't exist in a hub it will be created by default, if that particular account is authorized to create new rooms.
+Requesting authorization as a bot requires the first command to be sent to main !authreq.
+The hub admin then can set the level of the user, 1 = Can Relay, 2 = Can Relay + Create, 3 = Can Relay + Create + Delete
