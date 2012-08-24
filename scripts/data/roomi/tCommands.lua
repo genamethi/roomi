@@ -68,6 +68,14 @@ do
 			Permissions = tProtoPerms[3],
 			sHelp = "<Start> <End> - Give command first and last desired line number of viewable history.\n"
 		},
+		upmodrm = {
+		},
+		dnmodrm = {
+		},
+		upmoduser = {
+		},
+		dnmoduser = {
+		},
 	}
 end
 
