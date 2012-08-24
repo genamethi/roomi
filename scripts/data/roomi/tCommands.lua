@@ -174,16 +174,20 @@ end
 function tCommandArrivals.delroom:Action( tUser, sMsg )
 	local sRoom = sMsg:match( "^(%S+)|$" ):lower()
 	if sRoom then
+		local nRoom
 		for i = 1, #tRooms do
 			if tRooms[i].sNick:lower() == sRoom then
-				table.remove( tRooms, i )
-				Core.UnregBot( sRoom )
+				nRoom = i
 				break;
 			end
 		end
-		return true, "Room has been deleted!", true, tConfig.sNick
-	else
-		return true, "Specified room does not exist.", true, tConfig.sNick
+		if nRoom then
+			table.remove( tRooms, nRoom )
+			Core.UnregBot( sRoom )
+			return true, "Room has been deleted!", true, tConfig.sNick
+		else
+			return true, "Specified room does not exist.", true, tConfig.sNick
+		end
 	end
 end
 		
